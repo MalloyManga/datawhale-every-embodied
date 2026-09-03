@@ -3,6 +3,7 @@
 import argparse
 import json
 from collections import Counter
+from collections import deque
 from pathlib import Path
 from typing import Dict, List
 
@@ -58,10 +59,62 @@ def build_home_memory(observations: List[Dict]) -> Dict:
     }
 
 
+def add_route_memory(memory: Dict, route: List[str]) -> None:
+    """Store a user-confirmed sequence of connected rooms."""
+    if len(route) < 2:
+        raise ValueError("A route must contain at least two room names")
+
+    known_rooms = set(memory["rooms"])
+    unknown_rooms = [room for room in route if room not in known_rooms]
+    if unknown_rooms:
+        raise ValueError(f"Unknown rooms in route: {', '.join(unknown_rooms)}")
+
+    graph = memory.setdefault("route_memory", {})
+    for current_room, next_room in zip(route, route[1:]):
+        graph.setdefault(current_room, [])
+        graph.setdefault(next_room, [])
+        if next_room not in graph[current_room]:
+            graph[current_room].append(next_room)
+        if current_room not in graph[next_room]:
+            graph[next_room].append(current_room)
+
+
+def find_route(memory: Dict, start: str, goal: str) -> List[str]:
+    """Find a shortest remembered route between two rooms."""
+    graph = memory.get("route_memory", {})
+    if start == goal:
+        return [start]
+    if start not in graph or goal not in graph:
+        return []
+
+    queue = deque([[start]])
+    visited = {start}
+    while queue:
+        path = queue.popleft()
+        current_room = path[-1]
+        for next_room in graph.get(current_room, []):
+            if next_room in visited:
+                continue
+            next_path = path + [next_room]
+            if next_room == goal:
+                return next_path
+            visited.add(next_room)
+            queue.append(next_path)
+    return []
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build CyberPet home memory from detection maps")
     parser.add_argument("--input", type=Path, default=MAP_DIR, help="directory containing environment maps")
     parser.add_argument("--output", type=Path, default=MAP_DIR / "home_environment_memory.json")
+    parser.add_argument(
+        "--route",
+        action="append",
+        default=[],
+        help="remember a connected room sequence, e.g. sample_room,sample_bathroom",
+    )
+    parser.add_argument("--from-room", help="start room for a remembered route query")
+    parser.add_argument("--to-room", help="destination room for a remembered route query")
     args = parser.parse_args()
 
     observations = load_environment_maps(args.input)
@@ -69,6 +122,17 @@ def main() -> None:
         raise SystemExit(f"No environment maps found in: {args.input}")
 
     memory = build_home_memory(observations)
+    for route_text in args.route:
+        route = [room.strip() for room in route_text.split(",") if room.strip()]
+        add_route_memory(memory, route)
+
+    if args.from_room and args.to_room:
+        route = find_route(memory, args.from_room, args.to_room)
+        if route:
+            print(f"Remembered route: {' -> '.join(route)}")
+        else:
+            print(f"No remembered route: {args.from_room} -> {args.to_room}")
+
     with args.output.open("w", encoding="utf-8") as file:
         json.dump(memory, file, indent=2, ensure_ascii=False)
 
