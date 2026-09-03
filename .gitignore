@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+
+# Local model weights
+*.pt
+*.pth
+
+# Private image inputs
+images/*
+!images/.gitkeep
+
+# Generated detection outputs
+results/*
+!results/.gitkeep
+maps/*
+!maps/.gitkeep
