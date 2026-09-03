@@ -14,11 +14,14 @@ Date: 2026-09-02
 
 import cv2
 import numpy as np
+import torch
 from ultralytics import YOLO
 from pathlib import Path
 import json
 from datetime import datetime
 from typing import Dict, List, Tuple
+from PIL import Image
+from transformers import DPTForDepthEstimation, DPTImageProcessor
 
 
 class CyberPetEnvironmentDetector:
@@ -32,7 +35,12 @@ class CyberPetEnvironmentDetector:
     4. 建立环境地图和物体数据库
     """
 
-    def __init__(self, model_size: str = "n"):
+    def __init__(
+        self,
+        model_size: str = "n",
+        use_depth: bool = True,
+        depth_model_name: str = "Intel/dpt-hybrid-midas",
+    ):
         """
         初始化检测器
 
@@ -44,8 +52,25 @@ class CyberPetEnvironmentDetector:
         """
         print(f"🤖 正在加载YOLOv8-{model_size}模型...")
         self.model = YOLO(f"yolov8{model_size}.pt")
-        self.device = "cuda" if self.model.device else "cpu"
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"✅ 模型加载完成 (运行设备: {self.device})")
+
+        self.depth_enabled = False
+        self.depth_processor = None
+        self.depth_model = None
+        if use_depth:
+            try:
+                print(f"📏 正在加载单目深度模型: {depth_model_name}")
+                self.depth_processor = DPTImageProcessor.from_pretrained(depth_model_name)
+                self.depth_model = DPTForDepthEstimation.from_pretrained(
+                    depth_model_name
+                ).to(self.device)
+                self.depth_model.eval()
+                self.depth_model_name = depth_model_name
+                self.depth_enabled = True
+                print("✅ 单目深度模型加载完成")
+            except Exception as error:
+                print(f"⚠️ 单目深度模型加载失败，将只运行二维检测: {error}")
 
         # 家庭物体的关键词映射 - 赛博宠物需要识别的物体
         self.home_objects_mapping = {
@@ -111,8 +136,10 @@ class CyberPetEnvironmentDetector:
         # 运行检测
         results = self.model.predict(image, conf=conf_threshold, verbose=False)
 
+        depth_map = self._estimate_depth(image) if self.depth_enabled else None
+
         # 处理检测结果
-        detections = self._process_detections(results[0], image.shape)
+        detections = self._process_detections(results[0], image.shape, depth_map)
 
         # 保存结果
         self.environment_map = {
@@ -120,9 +147,15 @@ class CyberPetEnvironmentDetector:
             "image_path": str(image_path),
             "image_size": (width, height),
             "total_objects": len(detections["objects"]),
+            "objects": detections["objects"],
             "detected_objects": detections["summary"],
             "object_positions": detections["positions"],
             "confidence_scores": detections["confidences"],
+            "depth": {
+                "enabled": self.depth_enabled,
+                "model": getattr(self, "depth_model_name", None),
+                "unit": "relative_depth",
+            },
         }
 
         # 打印结果摘要
@@ -212,7 +245,30 @@ class CyberPetEnvironmentDetector:
         print(f"✅ 视频处理完成，共检测 {len(all_detections)} 个关键帧")
         return all_detections
 
-    def _process_detections(self, results, image_shape) -> Dict:
+    def _estimate_depth(self, image: np.ndarray) -> np.ndarray:
+        """Estimate relative depth from a single RGB image."""
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image_pil = Image.fromarray(image_rgb)
+        inputs = self.depth_processor(images=image_pil, return_tensors="pt")
+        inputs = {name: value.to(self.device) for name, value in inputs.items()}
+        with torch.no_grad():
+            outputs = self.depth_model(**inputs)
+            predicted_depth = outputs.predicted_depth
+        prediction = torch.nn.functional.interpolate(
+            predicted_depth.unsqueeze(1),
+            size=image.shape[:2],
+            mode="bicubic",
+            align_corners=False,
+        )
+        depth = prediction.squeeze().cpu().numpy()
+        depth_min, depth_max = float(depth.min()), float(depth.max())
+        if depth_max - depth_min < 1e-8:
+            return np.zeros_like(depth, dtype=np.float32)
+        return ((depth - depth_min) / (depth_max - depth_min)).astype(np.float32)
+
+    def _process_detections(
+        self, results, image_shape, depth_map: np.ndarray = None
+    ) -> Dict:
         """
         处理YOLO检测结果，提取有用的信息
 
@@ -245,6 +301,11 @@ class CyberPetEnvironmentDetector:
                 },
                 "position": self._normalize_position(center_x, center_y, width, height),
             }
+            if depth_map is not None:
+                center_depth = depth_map[
+                    min(int(center_y), height - 1), min(int(center_x), width - 1)
+                ]
+                detection_info["relative_depth"] = float(round(float(center_depth), 4))
 
             detections["objects"].append(detection_info)
 
