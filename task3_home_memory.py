@@ -103,6 +103,45 @@ def find_route(memory: Dict, start: str, goal: str) -> List[str]:
     return []
 
 
+def simulate_robot_action(action: str, room_name: str, object_name: str) -> Dict:
+    """Simulate a robot-driver call and return the planned action.
+
+    In a real robot this is where commands would be sent to the base, speaker,
+    or actuator driver. This project only records and prints the command.
+    """
+    action_result = {
+        "room": room_name,
+        "object": object_name,
+        "action": action,
+        "mode": "simulation",
+        "message": "",
+    }
+    if action == "approach_and_greet":
+        action_result["message"] = f"发现{object_name}，前往附近并进行问候"
+    elif action == "step_back_and_warn":
+        action_result["message"] = f"发现{object_name}，后退一步并提醒注意"
+    else:
+        action_result["message"] = f"发现{object_name}，保持观察"
+
+    print(f"Simulated action: {action_result['message']}")
+    return action_result
+
+
+def build_behavior_feedback(memory: Dict) -> List[Dict]:
+    """Generate behavior feedback from remembered room objects."""
+    feedback = []
+    for room_name, room in memory["rooms"].items():
+        for object_name in room["detected_objects"]:
+            if object_name == "bed":
+                action = "approach_and_greet"
+            elif object_name in {"toilet", "sink"}:
+                action = "step_back_and_warn"
+            else:
+                action = "observe"
+            feedback.append(simulate_robot_action(action, room_name, object_name))
+    return feedback
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build CyberPet home memory from detection maps")
     parser.add_argument("--input", type=Path, default=MAP_DIR, help="directory containing environment maps")
@@ -115,6 +154,11 @@ def main() -> None:
     )
     parser.add_argument("--from-room", help="start room for a remembered route query")
     parser.add_argument("--to-room", help="destination room for a remembered route query")
+    parser.add_argument(
+        "--simulate-behavior",
+        action="store_true",
+        help="simulate behavior feedback from remembered objects",
+    )
     args = parser.parse_args()
 
     observations = load_environment_maps(args.input)
@@ -132,6 +176,9 @@ def main() -> None:
             print(f"Remembered route: {' -> '.join(route)}")
         else:
             print(f"No remembered route: {args.from_room} -> {args.to_room}")
+
+    if args.simulate_behavior:
+        memory["behavior_feedback"] = build_behavior_feedback(memory)
 
     with args.output.open("w", encoding="utf-8") as file:
         json.dump(memory, file, indent=2, ensure_ascii=False)
