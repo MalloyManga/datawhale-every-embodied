@@ -14,3 +14,7 @@ results/*
 !results/.gitkeep
 maps/*
 !maps/.gitkeep
+
+# Private Task 4 videos and generated tracking outputs
+videos/*
+!videos/.gitkeep
