@@ -18,3 +18,9 @@ maps/*
 # Private Task 4 videos and generated tracking outputs
 videos/*
 !videos/.gitkeep
+
+# Private face data and face-model weights
+owner_images/*
+!owner_images/.gitkeep
+models/*
+!models/.gitkeep
