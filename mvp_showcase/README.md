@@ -51,16 +51,7 @@ Task 2：静态环境识别
 
 本次示例包含卧室和厕所场景，识别过电视、沙发、厕所、洗手池和盆栽等物体。
 
-### 示例结果
-
-将图片放入下面的位置：
-
-```text
-assets/task2-room-detection.jpg
-assets/task2-bathroom-detection.jpg
-```
-
-预留展示位置：
+### 实验结果
 
 ![卧室环境物体检测结果](assets/task2-room-detection.jpg)
 
@@ -80,13 +71,7 @@ Task 3 在静态识别的基础上增加了三类处理：
 sample_room -> sample_bathroom
 ```
 
-### 示例结果
-
-将环境记忆或路径查询截图放入：
-
-```text
-assets/task3-memory.png
-```
+### 实验结果
 
 ![家庭环境记忆与路径查询](assets/task3-memory.png)
 
@@ -98,13 +83,7 @@ Task 4 将输入从静态图片扩展到连续视频。程序逐帧识别 `perso
 
 本次视频共处理 241 帧，241 帧完成处理且没有帧级错误，主要轨迹持续 207 帧。人物被遮挡或离开视野时，轨迹可能中断或产生新的 ID，这也是动态跟踪需要继续改进的地方。
 
-### 示例结果
-
-将动态跟踪关键帧截图放入：
-
-```text
-assets/task4-tracking.png
-```
+### 实验结果
 
 ![动态人物跟踪结果](assets/task4-tracking.png)
 
@@ -134,13 +113,7 @@ Task 5 将动态跟踪进一步连接到身份判断和行为输出：
 
 当前输出的动作是模拟机器人驱动指令，并没有连接真实轮子、扬声器或底盘。
 
-### 示例结果
-
-将主人识别或模拟动作结果截图放入：
-
-```text
-assets/task5-owner-follow.png
-```
+### 实验结果
 
 ![主人识别与模拟跟随结果](assets/task5-owner-follow.png)
 
@@ -153,28 +126,28 @@ cyberpet_env_detection/
 ├── track_dynamic_video.py         # 动态目标检测与轨迹跟踪
 ├── owner_face_follow_mvp.py       # 主人识别与模拟跟随
 ├── run.py                         # 静态图片批量检测入口
-├── images/                        # 本地家庭图片，不提交
-├── videos/                        # 本地视频，不提交
-├── owner_images/                  # 本地主人照片，不提交
+├── images/                        # 运行时家庭图片输入目录
+├── videos/                        # 运行时视频输入目录
+├── owner_images/                  # 运行时主人注册照片目录
 └── mvp_showcase/                  # 本展示页与脱敏示例图
 ```
 
 ## 运行入口
 
-使用项目的 `embodied_new` Python 环境：
+在已安装项目依赖的 Python 环境中运行：
 
 ```bash
 # 静态图片识别
-E:/miniconda3/envs/embodied_new/python.exe run.py
+python run.py
 
 # 环境记忆、路径和行为反馈
-E:/miniconda3/envs/embodied_new/python.exe task3_home_memory.py --route sample_room,sample_bathroom --from-room sample_room --to-room sample_bathroom --simulate-behavior
+python task3_home_memory.py --route sample_room,sample_bathroom --from-room sample_room --to-room sample_bathroom --simulate-behavior
 
 # 动态人物跟踪
-E:/miniconda3/envs/embodied_new/python.exe track_dynamic_video.py
+python track_dynamic_video.py
 
 # 主人识别与模拟跟随
-E:/miniconda3/envs/embodied_new/python.exe owner_face_follow_mvp.py
+python owner_face_follow_mvp.py
 ```
 
 ## 当前边界
