@@ -85,10 +85,10 @@ sample_room -> sample_bathroom
 将环境记忆或路径查询截图放入：
 
 ```text
-assets/task3-memory.jpg
+assets/task3-memory.png
 ```
 
-![家庭环境记忆与路径查询](assets/task3-memory.jpg)
+![家庭环境记忆与路径查询](assets/task3-memory.png)
 
 ## Task 4：动态人物跟踪
 
@@ -103,10 +103,10 @@ Task 4 将输入从静态图片扩展到连续视频。程序逐帧识别 `perso
 将动态跟踪关键帧截图放入：
 
 ```text
-assets/task4-tracking.jpg
+assets/task4-tracking.png
 ```
 
-![动态人物跟踪结果](assets/task4-tracking.jpg)
+![动态人物跟踪结果](assets/task4-tracking.png)
 
 ## Task 5：主人识别与模拟跟随
 
@@ -139,10 +139,10 @@ Task 5 将动态跟踪进一步连接到身份判断和行为输出：
 将主人识别或模拟动作结果截图放入：
 
 ```text
-assets/task5-owner-follow.jpg
+assets/task5-owner-follow.png
 ```
 
-![主人识别与模拟跟随结果](assets/task5-owner-follow.jpg)
+![主人识别与模拟跟随结果](assets/task5-owner-follow.png)
 
 ## 代码结构
 
