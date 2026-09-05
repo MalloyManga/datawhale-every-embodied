@@ -15,6 +15,11 @@ results/*
 maps/*
 !maps/.gitkeep
 
+# Public, curated showcase assets are allowed to be committed.
+!mvp_showcase/
+!mvp_showcase/assets/
+!mvp_showcase/assets/*
+
 # Private Task 4 videos and generated tracking outputs
 videos/*
 !videos/.gitkeep
